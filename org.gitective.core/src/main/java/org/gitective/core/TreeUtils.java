@@ -437,15 +437,19 @@ public abstract class TreeUtils {
 
 			if (walk.isSubtree()) {
 				final String subTreePath = walk.getPathString();
-				walk.enterSubtree();
-				if (!visit(repository, walk, id, subTreePath, visitor))
-					return false;
+				if(visitor.accept(walk.getFileMode(0), path,
+                    walk.getNameString(), id)){
+				    walk.enterSubtree();
+				    visit(repository, walk, id, subTreePath, visitor);
+				}else{
+				    continue;
+				}
 			}
 
 			walk.getObjectId(id, 0);
 			if (!visitor.accept(walk.getFileMode(0), path,
 					walk.getNameString(), id))
-				return false;
+				continue;
 		}
 		return true;
 	}
