@@ -444,12 +444,13 @@ public abstract class TreeUtils {
 				}else{
 				    continue;
 				}
-			}
+			}else{
 
 			walk.getObjectId(id, 0);
 			if (!visitor.accept(walk.getFileMode(0), path,
 					walk.getNameString(), id))
 				continue;
+			}
 		}
 		return true;
 	}
