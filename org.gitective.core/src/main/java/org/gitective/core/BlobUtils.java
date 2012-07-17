@@ -137,17 +137,24 @@ public abstract class BlobUtils {
 	 */
 	protected static ObjectId lookupId(final Repository repository,
 			final RevCommit commit, final String path) {
-		final TreeWalk walk;
+	    ObjectId objectId = null;
+		TreeWalk walk = null;
 		try {
 			walk = TreeWalk.forPath(repository, path, commit.getTree());
+			if (walk == null)
+			    objectId =  null;
+	        if ((walk.getRawMode(0) & TYPE_MASK) != TYPE_FILE)
+	            objectId = null;
+
+	        objectId =  walk.getObjectId(0);
 		} catch (IOException e) {
 			throw new GitException(e, repository);
+		} finally{
+		    walk.release();
 		}
-		if (walk == null)
-			return null;
-		if ((walk.getRawMode(0) & TYPE_MASK) != TYPE_FILE)
-			return null;
-		return walk.getObjectId(0);
+
+		return objectId;
+
 	}
 
 	/**
