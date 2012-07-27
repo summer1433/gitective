@@ -49,377 +49,376 @@ import org.eclipse.jgit.revwalk.RevWalk;
  */
 public abstract class CommitUtils {
 
-	/**
-	 * Get the commit that the revision references.
-	 *
-	 * @param repository
-	 * @param revision
-	 * @return commit
-	 */
-	public static RevCommit getCommit(final Repository repository,
-			final String revision) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revision == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
-		if (revision.length() == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revision"));
+    /**
+     * Get the commit that the revision references.
+     *
+     * @param repository
+     * @param revision
+     * @return commit
+     */
+    public static RevCommit getCommit(final Repository repository, final String revision) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revision == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
+        if (revision.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revision"));
 
-		return parse(repository, resolve(repository, revision));
-	}
+        return parse(repository, resolve(repository, revision));
+    }
 
-	/**
-	 * Get the commit with the given id
-	 *
-	 * @param repository
-	 * @param commitId
-	 * @return commit
-	 */
-	public static RevCommit getCommit(final Repository repository,
-			final ObjectId commitId) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (commitId == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Commit id"));
+    /**
+     * Get the commit with the given id
+     *
+     * @param repository
+     * @param commitId
+     * @return commit
+     */
+    public static RevCommit getCommit(final Repository repository, final ObjectId commitId) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (commitId == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commit id"));
 
-		return parse(repository, commitId);
-	}
+        return parse(repository, commitId);
+    }
 
-	/**
-	 * Get the HEAD commit in the given repository.
-	 *
-	 * @param repository
-	 * @return commit never null
-	 */
-	public static RevCommit getHead(final Repository repository) {
-		return getCommit(repository, HEAD);
-	}
+    /**
+     * Get the HEAD commit in the given repository.
+     *
+     * @param repository
+     * @return commit never null
+     */
+    public static RevCommit getHead(final Repository repository) {
+        return getCommit(repository, HEAD);
+    }
 
-	/**
-	 * Get the commit at the tip of the master branch in the given repository.
-	 *
-	 * @param repository
-	 * @return commit never null
-	 */
-	public static RevCommit getMaster(final Repository repository) {
-		return getCommit(repository, MASTER);
-	}
+    /**
+     * Get the commit at the tip of the master branch in the given repository.
+     *
+     * @param repository
+     * @return commit never null
+     */
+    public static RevCommit getMaster(final Repository repository) {
+        return getCommit(repository, MASTER);
+    }
 
-	/**
-	 * Get the common base commit of the given commits.
-	 *
-	 * @param repository
-	 * @param commits
-	 * @return base commit or null if none
-	 */
-	public static RevCommit getBase(final Repository repository,
-			final ObjectId... commits) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (commits == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Commits"));
-		if (commits.length == 0)
-			throw new IllegalArgumentException(Assert.formatNotEmpty("Commits"));
+    /**
+     * Get the common base commit of the given commits.
+     *
+     * @param repository
+     * @param commits
+     * @return base commit or null if none
+     */
+    public static RevCommit getBase(final Repository repository, final ObjectId... commits) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (commits == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commits"));
+        if (commits.length == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Commits"));
 
-		return walkToBase(repository, commits);
-	}
+        return walkToBase(repository, commits);
+    }
 
-	/**
-	 * Get the common base commit between the given revisions.
-	 *
-	 * @param repository
-	 * @param revisions
-	 * @return base commit or null if none
-	 */
-	public static RevCommit getBase(final Repository repository,
-			final String... revisions) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revisions == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Revisions"));
-		if (revisions.length == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revisions"));
+    /**
+     * Get the common base commit between the given revisions.
+     *
+     * @param repository
+     * @param revisions
+     * @return base commit or null if none
+     */
+    public static RevCommit getBase(final Repository repository, final String... revisions) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revisions == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revisions"));
+        if (revisions.length == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revisions"));
 
-		final int length = revisions.length;
-		final ObjectId[] commits = new ObjectId[length];
-		for (int i = 0; i < length; i++) {
-			commits[i] = strictResolve(repository, revisions[i]);
-		}
-		return walkToBase(repository, commits);
-	}
+        final int length = revisions.length;
+        final ObjectId[] commits = new ObjectId[length];
+        for (int i = 0; i < length; i++) {
+            commits[i] = strictResolve(repository, revisions[i]);
+        }
+        return walkToBase(repository, commits);
+    }
 
-	/**
-	 * Get the commit that the given name references.
-	 *
-	 * @param repository
-	 * @param refName
-	 * @return commit, may be null
-	 */
-	public static RevCommit getRef(final Repository repository,
-			final String refName) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (refName == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Ref name"));
-		if (refName.length() == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Ref name"));
+    /**
+     * Get the commit that the given name references.
+     *
+     * @param repository
+     * @param refName
+     * @return commit, may be null
+     */
+    public static RevCommit getRef(final Repository repository, final String refName) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (refName == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Ref name"));
+        if (refName.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Ref name"));
 
-		Ref ref;
-		try {
-			ref = repository.getRef(refName);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-		return ref != null ? lookupRef(repository, ref) : null;
-	}
+        Ref ref;
+        try {
+            ref = repository.getRef(refName);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        }
+        return ref != null ? lookupRef(repository, ref) : null;
+    }
 
-	/**
-	 * Get the commit for the given reference.
-	 *
-	 * @param repository
-	 * @param ref
-	 * @return commit, may be null
-	 */
-	public static RevCommit getRef(final Repository repository, final Ref ref) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (ref == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Ref"));
+    /**
+     * Get the commit for the given reference.
+     *
+     * @param repository
+     * @param ref
+     * @return commit, may be null
+     */
+    public static RevCommit getRef(final Repository repository, final Ref ref) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (ref == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Ref"));
 
-		return lookupRef(repository, ref);
-	}
+        return lookupRef(repository, ref);
+    }
 
-	/**
-	 * Get all the commits that tags in the given repository reference.
-	 *
-	 * @param repository
-	 * @return non-null but possibly empty collection of commits
-	 */
-	public static Collection<RevCommit> getTags(final Repository repository) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
+    /**
+     * Get all the commits that tags in the given repository reference.
+     *
+     * @param repository
+     * @return non-null but possibly empty collection of commits
+     */
+    public static Collection<RevCommit> getTags(final Repository repository) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
 
-		final Collection<RevCommit> commits = new HashSet<RevCommit>();
-		final RevWalk walk = new RevWalk(repository);
-		final RefDatabase refDb = repository.getRefDatabase();
-		try {
-			getRefCommits(walk, refDb, R_TAGS, commits);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-		return commits;
-	}
+        final Collection<RevCommit> commits = new HashSet<RevCommit>();
+        final RevWalk walk = new RevWalk(repository);
+        final RefDatabase refDb = repository.getRefDatabase();
+        try {
+            getRefCommits(walk, refDb, R_TAGS, commits);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+        return commits;
+    }
 
-	/**
-	 * Get all the commits that branches in the given repository reference.
-	 *
-	 * @param repository
-	 * @return non-null but possibly empty collection of commits
-	 */
-	public static Collection<RevCommit> getBranches(final Repository repository) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
+    /**
+     * Get all the commits that branches in the given repository reference.
+     *
+     * @param repository
+     * @return non-null but possibly empty collection of commits
+     */
+    public static Collection<RevCommit> getBranches(final Repository repository) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
 
-		final Collection<RevCommit> commits = new HashSet<RevCommit>();
-		final RevWalk walk = new RevWalk(repository);
-		final RefDatabase refDb = repository.getRefDatabase();
-		try {
-			getRefCommits(walk, refDb, R_HEADS, commits);
-			getRefCommits(walk, refDb, R_REMOTES, commits);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-		return commits;
-	}
+        final Collection<RevCommit> commits = new HashSet<RevCommit>();
+        final RevWalk walk = new RevWalk(repository);
+        final RefDatabase refDb = repository.getRefDatabase();
+        try {
+            getRefCommits(walk, refDb, R_HEADS, commits);
+            getRefCommits(walk, refDb, R_REMOTES, commits);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+        return commits;
+    }
 
-	private static void getRefCommits(final RevWalk walk,
-			final RefDatabase refDb, final String prefix,
-			final Collection<RevCommit> commits) throws IOException {
-		for (Ref ref : refDb.getRefs(prefix).values()) {
-			final RevCommit commit = getRef(walk, ref);
-			if (commit != null)
-				commits.add(commit);
-		}
-	}
+    private static void getRefCommits(final RevWalk walk, final RefDatabase refDb,
+                                      final String prefix, final Collection<RevCommit> commits)
+                                                                                               throws IOException {
+        for (Ref ref : refDb.getRefs(prefix).values()) {
+            final RevCommit commit = getRef(walk, ref);
+            if (commit != null)
+                commits.add(commit);
+        }
+    }
 
-	private static RevCommit lookupRef(final Repository repository,
-			final Ref ref) {
-		final RevWalk walk = new RevWalk(repository);
-		try {
-			return getRef(walk, ref);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-	}
+    private static RevCommit lookupRef(final Repository repository, final Ref ref) {
+        final RevWalk walk = new RevWalk(repository);
+        try {
+            return getRef(walk, ref);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+    }
 
-	private static RevCommit getRef(final RevWalk walk, final Ref ref)
-			throws IOException {
-		ObjectId id = ref.getPeeledObjectId();
-		if (id == null)
-			id = ref.getObjectId();
-		return id != null ? walk.parseCommit(id) : null;
-	}
+    private static RevCommit getRef(final RevWalk walk, final Ref ref) throws IOException {
+        ObjectId id = ref.getPeeledObjectId();
+        if (id == null)
+            id = ref.getObjectId();
+        return id != null ? walk.parseCommit(id) : null;
+    }
 
-	/**
-	 * Resolve the revision string to a commit object id
-	 *
-	 * @param repository
-	 * @param revision
-	 * @return commit id
-	 */
-	protected static ObjectId resolve(final Repository repository,
-			final String revision) {
-		try {
-			return repository.resolve(revision);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-	}
+    /**
+     * Resolve the revision string to a commit object id
+     *
+     * @param repository
+     * @param revision
+     * @return commit id
+     */
+    protected static ObjectId resolve(final Repository repository, final String revision) {
+        try {
+            return repository.resolve(revision);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        }
+    }
 
-	/**
-	 * Resolve the revision string to a commit object id.
-	 * <p>
-	 * A {@link GitException} will be thrown when the revision can not be
-	 * resolved to an {@link ObjectId}
-	 *
-	 * @param repository
-	 * @param revision
-	 * @return commit id
-	 */
-	protected static ObjectId strictResolve(final Repository repository,
-			final String revision) {
-		final ObjectId resolved = resolve(repository, revision);
-		if (resolved == null)
-			throw new GitException(MessageFormat.format(
-					"Revision ''{0}'' could not be resolved", revision),
-					repository);
-		return resolved;
-	}
+    /**
+     * Resolve the revision string to a commit object id.
+     * <p>
+     * A {@link GitException} will be thrown when the revision can not be
+     * resolved to an {@link ObjectId}
+     *
+     * @param repository
+     * @param revision
+     * @return commit id
+     */
+    protected static ObjectId strictResolve(final Repository repository, final String revision) {
+        final ObjectId resolved = resolve(repository, revision);
+        if (resolved == null)
+            throw new GitException(MessageFormat.format("Revision ''{0}'' could not be resolved",
+                revision), repository);
+        return resolved;
+    }
 
-	private static RevCommit walkToBase(final Repository repository,
-			final ObjectId... commits) {
-		final RevWalk walk = new RevWalk(repository);
-		walk.setRevFilter(MERGE_BASE);
-		try {
-			for (int i = 0; i < commits.length; i++)
-				walk.markStart(walk.parseCommit(commits[i]));
-			final RevCommit base = walk.next();
-			if (base != null)
-				walk.parseBody(base);
-			return base;
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-	}
+    private static RevCommit walkToBase(final Repository repository, final ObjectId... commits) {
+        final RevWalk walk = new RevWalk(repository);
+        walk.setRevFilter(MERGE_BASE);
+        try {
+            for (int i = 0; i < commits.length; i++)
+                walk.markStart(walk.parseCommit(commits[i]));
+            final RevCommit base = walk.next();
+            if (base != null)
+                walk.parseBody(base);
+            return base;
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+    }
 
-	/**
-	 * Parse a commit from the repository
-	 *
-	 * @param repository
-	 * @param commit
-	 * @return commit
-	 */
-	protected static RevCommit parse(final Repository repository,
-			final ObjectId commit) {
-		final RevWalk walk = new RevWalk(repository);
-		walk.setRetainBody(true);
-		try {
-			return walk.parseCommit(commit);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-	}
+    /**
+     * Parse a commit from the repository
+     *
+     * @param repository
+     * @param commit
+     * @return commit
+     */
+    protected static RevCommit parse(final Repository repository, final ObjectId commit) {
+        final RevWalk walk = new RevWalk(repository);
+        walk.setRetainBody(true);
+        try {
+            return walk.parseCommit(commit);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+    }
 
-	/**
-	 * Parse a commit from the object reader
-	 *
-	 * @param repository
-	 * @param reader
-	 * @param commit
-	 * @return commit
-	 */
-	protected static RevCommit parse(final Repository repository,
-			final ObjectReader reader, final ObjectId commit) {
-		final RevWalk walk = new RevWalk(reader);
-		walk.setRetainBody(true);
-		try {
-			return walk.parseCommit(commit);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-	}
+    /**
+     * Parse a commit from the object reader
+     *
+     * @param repository
+     * @param reader
+     * @param commit
+     * @return commit
+     */
+    protected static RevCommit parse(final Repository repository, final ObjectReader reader,
+                                     final ObjectId commit) {
+        final RevWalk walk = new RevWalk(reader);
+        walk.setRetainBody(true);
+        try {
+            return walk.parseCommit(commit);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+    }
 
-	/**
-	 * Find the commit that last changed the given path starting at the commit
-	 * that HEAD currently points to
-	 *
-	 * @param repository
-	 * @param path
-	 * @return commit
-	 */
-	public static RevCommit getLastCommit(final Repository repository,
-			final String path) {
-		return getLastCommit(repository, HEAD, path);
-	}
+    /**
+     * Find the commit that last changed the given path starting at the commit
+     * that HEAD currently points to
+     *
+     * @param repository
+     * @param path
+     * @return commit
+     */
+    public static RevCommit getLastCommit(final Repository repository, final String path) {
+        return getLastCommit(repository, HEAD, path);
+    }
 
-	/**
-	 * Find the commit that last changed the given path starting with the commit
-	 * at the given revision
-	 *
-	 * @param repository
-	 * @param revision
-	 * @param path
-	 * @return commit
-	 */
-	public static RevCommit getLastCommit(final Repository repository,
-			final String revision, final String path) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revision == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
-		if (revision.length() == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revision"));
-		if (path == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Path"));
-		if (path.length() == 0)
-			throw new IllegalArgumentException(Assert.formatNotEmpty("Path"));
+    /**
+     * Find the commit that last changed the given path starting with the commit
+     * at the given revision
+     *
+     * @param repository
+     * @param revision
+     * @param path
+     * @return commit
+     */
+    public static RevCommit getLastCommit(final Repository repository, final String revision,
+                                          final String path) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revision == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
+        if (revision.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revision"));
+        if (path == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Path"));
+        if (path.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Path"));
 
-		final RevWalk walk = new RevWalk(repository);
-		walk.setRetainBody(true);
-		try {
-			walk.markStart(walk
-					.parseCommit(strictResolve(repository, revision)));
-			walk.setTreeFilter(PathFilterUtils.and(path));
-			return walk.next();
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-	}
+        final RevWalk walk = new RevWalk(repository);
+        walk.setRetainBody(true);
+        try {
+            walk.markStart(walk.parseCommit(strictResolve(repository, revision)));
+            walk.setTreeFilter(PathFilterUtils.and(path));
+            return walk.next();
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+    }
+
+    public static RevCommit getPreCommit(final Repository repository, final ObjectId commit,
+                                         final int deep) {
+        RevCommit rc = null;
+
+        final RevWalk walk = new RevWalk(repository);
+        walk.setRetainBody(true);
+
+        try {
+            RevCommit currentRev = walk.parseCommit(commit);
+            walk.markStart(currentRev);
+
+            for (int i = 0; i < deep + 1; i++){
+                rc = walk.next();
+                rc.getTree();
+
+            }
+
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+
+        return rc;
+    }
 }
