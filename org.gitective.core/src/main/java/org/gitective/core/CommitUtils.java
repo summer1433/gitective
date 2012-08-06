@@ -407,9 +407,10 @@ public abstract class CommitUtils {
             RevCommit currentRev = walk.parseCommit(commit);
             walk.markStart(currentRev);
 
-            for (int i = 0; i < deep + 1; i++){
+            for (int i = 0; i < deep + 1; i++) {
                 rc = walk.next();
-                rc.getTree();
+                if (rc != null)
+                    rc.getTree();
 
             }
 
