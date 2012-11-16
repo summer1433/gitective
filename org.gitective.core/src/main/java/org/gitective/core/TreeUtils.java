@@ -44,414 +44,387 @@ import org.eclipse.jgit.treewalk.TreeWalk;
  */
 public abstract class TreeUtils {
 
-	/**
-	 * Interface for visiting elements in a tree
-	 */
-	public static interface ITreeVisitor {
+    /**
+     * Interface for visiting elements in a tree
+     */
+    public static interface ITreeVisitor {
 
-		/**
-		 * Visit the given element
-		 *
-		 * @param mode
-		 *            mode of current entry
-		 * @param path
-		 *            parent path of entry, null for root entries
-		 * @param name
-		 *            name of current entry
-		 * @param id
-		 *            id of current entry
-		 * @return true to continue, false to abort
-		 */
-		boolean accept(FileMode mode, String path, String name, AnyObjectId id);
-	}
+        /**
+         * Visit the given element
+         *
+         * @param mode
+         *            mode of current entry
+         * @param path
+         *            parent path of entry, null for root entries
+         * @param name
+         *            name of current entry
+         * @param id
+         *            id of current entry
+         * @return true to continue, false to abort
+         */
+        boolean accept(FileMode mode, String path, String name, AnyObjectId id);
 
-	/**
-	 * Get the tree associated with the given commit.
-	 *
-	 * @param walk
-	 * @param commit
-	 * @return tree
-	 * @throws IOException
-	 */
-	protected static RevTree getTree(final RevWalk walk, final RevCommit commit)
-			throws IOException {
-		final RevTree tree = commit.getTree();
-		if (tree != null)
-			return tree;
-		walk.parseHeaders(commit);
-		return commit.getTree();
-	}
+    }
 
-	/**
-	 * Create a tree walk with the commit's parents.
-	 *
-	 * @param reader
-	 * @param rWalk
-	 * @param commit
-	 * @return tree walk
-	 * @throws IOException
-	 */
-	protected static TreeWalk withParents(final ObjectReader reader,
-			final RevWalk rWalk, final RevCommit commit) throws IOException {
-		final TreeWalk walk = new TreeWalk(reader);
-		final int parentCount = commit.getParentCount();
-		switch (parentCount) {
-		case 0:
-			walk.addTree(new EmptyTreeIterator());
-			break;
-		case 1:
-			walk.addTree(getTree(rWalk, commit.getParent(0)));
-			break;
-		default:
-			final RevCommit[] parents = commit.getParents();
-			for (int i = 0; i < parentCount; i++)
-				walk.addTree(getTree(rWalk, parents[i]));
-		}
-		walk.addTree(getTree(rWalk, commit));
-		return walk;
-	}
+    /**
+     * Get the tree associated with the given commit.
+     *
+     * @param walk
+     * @param commit
+     * @return tree
+     * @throws IOException
+     */
+    protected static RevTree getTree(final RevWalk walk, final RevCommit commit) throws IOException {
+        final RevTree tree = commit.getTree();
+        if (tree != null)
+            return tree;
+        walk.parseHeaders(commit);
+        return commit.getTree();
+    }
 
-	/**
-	 * Create a tree walk with all the trees from the given commit's parents.
-	 *
-	 * @param repository
-	 * @param commitId
-	 * @return tree walk
-	 */
-	public static TreeWalk withParents(final Repository repository,
-			final AnyObjectId commitId) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (commitId == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Commit id"));
+    /**
+     * Create a tree walk with the commit's parents.
+     *
+     * @param reader
+     * @param rWalk
+     * @param commit
+     * @return tree walk
+     * @throws IOException
+     */
+    protected static TreeWalk withParents(final ObjectReader reader, final RevWalk rWalk,
+                                          final RevCommit commit) throws IOException {
+        final TreeWalk walk = new TreeWalk(reader);
+        final int parentCount = commit.getParentCount();
+        switch (parentCount) {
+            case 0:
+                walk.addTree(new EmptyTreeIterator());
+                break;
+            case 1:
+                walk.addTree(getTree(rWalk, commit.getParent(0)));
+                break;
+            default:
+                final RevCommit[] parents = commit.getParents();
+                for (int i = 0; i < parentCount; i++)
+                    walk.addTree(getTree(rWalk, parents[i]));
+        }
+        walk.addTree(getTree(rWalk, commit));
+        return walk;
+    }
 
-		final ObjectReader reader = repository.newObjectReader();
-		final RevWalk walk = new RevWalk(reader);
-		try {
-			return withParents(reader, walk, walk.parseCommit(commitId));
-		} catch (IOException e) {
-			walk.release();
-			throw new GitException(e, repository);
-		}
-	}
+    /**
+     * Create a tree walk with all the trees from the given commit's parents.
+     *
+     * @param repository
+     * @param commitId
+     * @return tree walk
+     */
+    public static TreeWalk withParents(final Repository repository, final AnyObjectId commitId) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (commitId == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commit id"));
 
-	/**
-	 * Create a tree walk with all the trees from the given revision's commit
-	 * parents.
-	 *
-	 * @param repository
-	 * @param revision
-	 * @return tree walk
-	 */
-	public static TreeWalk withParents(final Repository repository,
-			final String revision) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revision == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
-		if (revision.length() == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revision"));
+        final ObjectReader reader = repository.newObjectReader();
+        final RevWalk walk = new RevWalk(reader);
+        try {
+            return withParents(reader, walk, walk.parseCommit(commitId));
+        } catch (IOException e) {
+            walk.release();
+            throw new GitException(e, repository);
+        }
+    }
 
-		final ObjectId commit = CommitUtils.strictResolve(repository, revision);
-		final ObjectReader reader = repository.newObjectReader();
-		final RevWalk walk = new RevWalk(reader);
-		try {
-			return withParents(reader, walk, walk.parseCommit(commit));
-		} catch (IOException e) {
-			walk.release();
-			throw new GitException(e, repository);
-		}
-	}
+    /**
+     * Create a tree walk with all the trees from the given revision's commit
+     * parents.
+     *
+     * @param repository
+     * @param revision
+     * @return tree walk
+     */
+    public static TreeWalk withParents(final Repository repository, final String revision) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revision == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
+        if (revision.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revision"));
 
-	/**
-	 * Create a tree walk with all the trees from the given commit's parents.
-	 *
-	 * @param walk
-	 * @param commit
-	 * @return tree walk
-	 */
-	public static TreeWalk withParents(final RevWalk walk,
-			final RevCommit commit) {
-		if (walk == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Walk"));
-		if (commit == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Commit"));
+        final ObjectId commit = CommitUtils.strictResolve(repository, revision);
+        final ObjectReader reader = repository.newObjectReader();
+        final RevWalk walk = new RevWalk(reader);
+        try {
+            return withParents(reader, walk, walk.parseCommit(commit));
+        } catch (IOException e) {
+            walk.release();
+            throw new GitException(e, repository);
+        }
+    }
 
-		try {
-			return withParents(walk.getObjectReader(), walk, commit);
-		} catch (IOException e) {
-			throw new GitException(e, null);
-		}
-	}
+    /**
+     * Create a tree walk with all the trees from the given commit's parents.
+     *
+     * @param walk
+     * @param commit
+     * @return tree walk
+     */
+    public static TreeWalk withParents(final RevWalk walk, final RevCommit commit) {
+        if (walk == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Walk"));
+        if (commit == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commit"));
 
-	/**
-	 * Create a tree walk configured to diff the given commit against all the
-	 * parent commits.
-	 *
-	 * @param repository
-	 * @param commitId
-	 * @return tree walk
-	 */
-	public static TreeWalk diffWithParents(final Repository repository,
-			final AnyObjectId commitId) {
-		final TreeWalk walk = withParents(repository, commitId);
-		walk.setFilter(ANY_DIFF);
-		return walk;
-	}
+        try {
+            return withParents(walk.getObjectReader(), walk, commit);
+        } catch (IOException e) {
+            throw new GitException(e, null);
+        }
+    }
 
-	/**
-	 * Create a tree walk configured to diff the given commit against all the
-	 * parent commits.
-	 *
-	 * @param walk
-	 * @param commit
-	 * @return tree walk
-	 */
-	public static TreeWalk diffWithParents(final RevWalk walk,
-			final RevCommit commit) {
-		final TreeWalk treeWalk = withParents(walk, commit);
-		treeWalk.setFilter(ANY_DIFF);
-		return treeWalk;
-	}
+    /**
+     * Create a tree walk configured to diff the given commit against all the
+     * parent commits.
+     *
+     * @param repository
+     * @param commitId
+     * @return tree walk
+     */
+    public static TreeWalk diffWithParents(final Repository repository, final AnyObjectId commitId) {
+        final TreeWalk walk = withParents(repository, commitId);
+        walk.setFilter(ANY_DIFF);
+        return walk;
+    }
 
-	/**
-	 * Create a tree walk configured to diff the given revision against all the
-	 * parent commits.
-	 *
-	 * @param repository
-	 * @param revision
-	 * @return tree walk
-	 */
-	public static TreeWalk diffWithParents(final Repository repository,
-			final String revision) {
-		final TreeWalk walk = withParents(repository, revision);
-		walk.setFilter(ANY_DIFF);
-		return walk;
-	}
+    /**
+     * Create a tree walk configured to diff the given commit against all the
+     * parent commits.
+     *
+     * @param walk
+     * @param commit
+     * @return tree walk
+     */
+    public static TreeWalk diffWithParents(final RevWalk walk, final RevCommit commit) {
+        final TreeWalk treeWalk = withParents(walk, commit);
+        treeWalk.setFilter(ANY_DIFF);
+        return treeWalk;
+    }
 
-	/**
-	 * Create a tree walk configured with the given commit revisions
-	 *
-	 * @param repository
-	 * @param revisions
-	 * @return tree walk
-	 */
-	public static TreeWalk withCommits(final Repository repository,
-			final String... revisions) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revisions == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Revisions"));
-		if (revisions.length == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revisions"));
+    /**
+     * Create a tree walk configured to diff the given revision against all the
+     * parent commits.
+     *
+     * @param repository
+     * @param revision
+     * @return tree walk
+     */
+    public static TreeWalk diffWithParents(final Repository repository, final String revision) {
+        final TreeWalk walk = withParents(repository, revision);
+        walk.setFilter(ANY_DIFF);
+        return walk;
+    }
 
-		final TreeWalk walk = new TreeWalk(repository);
-		try {
-			for (String revision : revisions)
-				walk.addTree(CommitUtils.getCommit(repository, revision)
-						.getTree());
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-		return walk;
-	}
+    /**
+     * Create a tree walk configured with the given commit revisions
+     *
+     * @param repository
+     * @param revisions
+     * @return tree walk
+     */
+    public static TreeWalk withCommits(final Repository repository, final String... revisions) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revisions == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revisions"));
+        if (revisions.length == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revisions"));
 
-	/**
-	 * Create a tree walk configured with the given commits
-	 *
-	 * @param repository
-	 * @param commits
-	 * @return tree walk
-	 */
-	public static TreeWalk withCommits(final Repository repository,
-			final ObjectId... commits) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (commits == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Commits"));
-		if (commits.length == 0)
-			throw new IllegalArgumentException(Assert.formatNotEmpty("Commits"));
+        final TreeWalk walk = new TreeWalk(repository);
+        try {
+            for (String revision : revisions)
+                walk.addTree(CommitUtils.getCommit(repository, revision).getTree());
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        }
+        return walk;
+    }
 
-		final TreeWalk walk = new TreeWalk(repository);
-		try {
-			for (ObjectId commit : commits)
-				walk.addTree(CommitUtils.getCommit(repository, commit)
-						.getTree());
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-		return walk;
-	}
+    /**
+     * Create a tree walk configured with the given commits
+     *
+     * @param repository
+     * @param commits
+     * @return tree walk
+     */
+    public static TreeWalk withCommits(final Repository repository, final ObjectId... commits) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (commits == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commits"));
+        if (commits.length == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Commits"));
 
-	/**
-	 * Create a tree walk configured to diff the given commits
-	 *
-	 * @param repository
-	 * @param commits
-	 * @return tree walk
-	 */
-	public static TreeWalk diffWithCommits(final Repository repository,
-			final ObjectId... commits) {
-		final TreeWalk walk = withCommits(repository, commits);
-		walk.setFilter(ANY_DIFF);
-		return walk;
-	}
+        final TreeWalk walk = new TreeWalk(repository);
+        try {
+            for (ObjectId commit : commits)
+                walk.addTree(CommitUtils.getCommit(repository, commit).getTree());
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        }
+        return walk;
+    }
 
-	/**
-	 * Create a tree walk configured to diff the given commit revisions
-	 *
-	 * @param repository
-	 * @param revisions
-	 * @return tree walk
-	 */
-	public static TreeWalk diffWithCommits(final Repository repository,
-			final String... revisions) {
-		final TreeWalk walk = withCommits(repository, revisions);
-		walk.setFilter(ANY_DIFF);
-		return walk;
-	}
+    /**
+     * Create a tree walk configured to diff the given commits
+     *
+     * @param repository
+     * @param commits
+     * @return tree walk
+     */
+    public static TreeWalk diffWithCommits(final Repository repository, final ObjectId... commits) {
+        final TreeWalk walk = withCommits(repository, commits);
+        walk.setFilter(ANY_DIFF);
+        return walk;
+    }
 
-	/**
-	 * Get the id of the tree at the path in the given commit.
-	 *
-	 * @param repository
-	 * @param commit
-	 * @param path
-	 * @return tree id, null if not present
-	 */
-	protected static ObjectId lookupId(final Repository repository,
-			final RevCommit commit, final String path) {
-		final TreeWalk walk;
-		try {
-			walk = TreeWalk.forPath(repository, path, commit.getTree());
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		}
-		if (walk == null)
-			return null;
-		if ((walk.getRawMode(0) & TYPE_MASK) != TYPE_TREE)
-			return null;
-		return walk.getObjectId(0);
-	}
+    /**
+     * Create a tree walk configured to diff the given commit revisions
+     *
+     * @param repository
+     * @param revisions
+     * @return tree walk
+     */
+    public static TreeWalk diffWithCommits(final Repository repository, final String... revisions) {
+        final TreeWalk walk = withCommits(repository, revisions);
+        walk.setFilter(ANY_DIFF);
+        return walk;
+    }
 
-	/**
-	 * Get the id of the tree at the path in the given commit
-	 *
-	 * @param repository
-	 * @param commitId
-	 * @param path
-	 * @return tree id or null if no tree id at path
-	 */
-	public static ObjectId getId(final Repository repository,
-			final ObjectId commitId, final String path) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (commitId == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Commit Id"));
-		if (path == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Path"));
-		if (path.length() == 0)
-			throw new IllegalArgumentException(Assert.formatNotNull("Path"));
+    /**
+     * Get the id of the tree at the path in the given commit.
+     *
+     * @param repository
+     * @param commit
+     * @param path
+     * @return tree id, null if not present
+     */
+    protected static ObjectId lookupId(final Repository repository, final RevCommit commit,
+                                       final String path) {
+        final TreeWalk walk;
+        try {
+            walk = TreeWalk.forPath(repository, path, commit.getTree());
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        }
+        if (walk == null)
+            return null;
+        if ((walk.getRawMode(0) & TYPE_MASK) != TYPE_TREE)
+            return null;
+        return walk.getObjectId(0);
+    }
 
-		final RevCommit commit = CommitUtils.parse(repository, commitId);
-		return lookupId(repository, commit, path);
-	}
+    /**
+     * Get the id of the tree at the path in the given commit
+     *
+     * @param repository
+     * @param commitId
+     * @param path
+     * @return tree id or null if no tree id at path
+     */
+    public static ObjectId getId(final Repository repository, final ObjectId commitId,
+                                 final String path) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (commitId == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Commit Id"));
+        if (path == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Path"));
+        if (path.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotNull("Path"));
 
-	/**
-	 * Get the id of the tree at the path in the given revision
-	 *
-	 * @param repository
-	 * @param revision
-	 * @param path
-	 * @return tree id or null if no tree id at path
-	 */
-	public static ObjectId getId(final Repository repository,
-			final String revision, final String path) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (revision == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
-		if (revision.length() == 0)
-			throw new IllegalArgumentException(
-					Assert.formatNotEmpty("Revision"));
-		if (path == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Path"));
-		if (path.length() == 0)
-			throw new IllegalArgumentException(Assert.formatNotNull("Path"));
+        final RevCommit commit = CommitUtils.parse(repository, commitId);
+        return lookupId(repository, commit, path);
+    }
 
-		final RevCommit commit = CommitUtils.parse(repository,
-				CommitUtils.strictResolve(repository, revision));
-		return lookupId(repository, commit, path);
-	}
+    /**
+     * Get the id of the tree at the path in the given revision
+     *
+     * @param repository
+     * @param revision
+     * @param path
+     * @return tree id or null if no tree id at path
+     */
+    public static ObjectId getId(final Repository repository, final String revision,
+                                 final String path) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (revision == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Revision"));
+        if (revision.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotEmpty("Revision"));
+        if (path == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Path"));
+        if (path.length() == 0)
+            throw new IllegalArgumentException(Assert.formatNotNull("Path"));
 
-	/**
-	 * Visit entries in the given tree
-	 *
-	 * @param repository
-	 * @param treeId
-	 * @param visitor
-	 * @return true if fully completed, false if terminated early
-	 */
-	public static boolean visit(final Repository repository,
-			final ObjectId treeId, final ITreeVisitor visitor) {
-		if (repository == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Repository"));
-		if (treeId == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Tree Id"));
-		if (visitor == null)
-			throw new IllegalArgumentException(Assert.formatNotNull("Visitor"));
+        final RevCommit commit = CommitUtils.parse(repository,
+            CommitUtils.strictResolve(repository, revision));
+        return lookupId(repository, commit, path);
+    }
 
-		final TreeWalk walk = new TreeWalk(repository);
-		walk.setPostOrderTraversal(true);
-		final MutableObjectId id = new MutableObjectId();
-		try {
-			walk.addTree(treeId);
-			if (!visit(repository, walk, id, null, visitor))
-				return false;
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-		return true;
-	}
+    /**
+     * Visit entries in the given tree
+     *
+     * @param repository
+     * @param treeId
+     * @param visitor
+     * @return true if fully completed, false if terminated early
+     */
+    public static boolean visit(final Repository repository, final ObjectId treeId,
+                                final ITreeVisitor visitor) {
+        if (repository == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Repository"));
+        if (treeId == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Tree Id"));
+        if (visitor == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Visitor"));
 
-	private static boolean visit(final Repository repository,
-			final TreeWalk walk, final MutableObjectId id, final String path,
-			final ITreeVisitor visitor) throws IOException {
-		while (walk.next()) {
-			if (walk.isPostChildren())
-				break;
+        final TreeWalk walk = new TreeWalk(repository);
+        walk.setPostOrderTraversal(true);
+        final MutableObjectId id = new MutableObjectId();
+        try {
+            walk.addTree(treeId);
+            if (!visit(repository, walk, id, null, visitor))
+                return false;
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+        return true;
+    }
 
-			if (walk.isSubtree()) {
-				final String subTreePath = walk.getPathString();
-				if(visitor.accept(walk.getFileMode(0), path,
-                    walk.getNameString(), id)){
-				    walk.enterSubtree();
-				    visit(repository, walk, id, subTreePath, visitor);
-				}else{
-				    continue;
-				}
-			}else{
+    private static boolean visit(final Repository repository, final TreeWalk walk,
+                                 final MutableObjectId id, final String path,
+                                 final ITreeVisitor visitor) throws IOException {
+        while (walk.next()) {
+            if (walk.isPostChildren())
+                break;
 
-			walk.getObjectId(id, 0);
-			if (!visitor.accept(walk.getFileMode(0), path,
-					walk.getNameString(), id))
-				continue;
-			}
-		}
-		return true;
-	}
+            if (walk.isSubtree()) {
+                final String subTreePath = walk.getPathString();
+                if (visitor.accept(walk.getFileMode(0), path, walk.getNameString(), id)) {
+                    walk.enterSubtree();
+                    visit(repository, walk, id, subTreePath, visitor);
+                } else {
+                    continue;
+                }
+            } else {
+
+                walk.getObjectId(id, 0);
+                if (!visitor.accept(walk.getFileMode(0), path, walk.getNameString(), id))
+                    continue;
+            }
+        }
+        return true;
+    }
 }
