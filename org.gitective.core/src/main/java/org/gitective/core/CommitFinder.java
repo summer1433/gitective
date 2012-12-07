@@ -45,323 +45,335 @@ import org.gitective.core.filter.tree.BaseTreeFilter;
  */
 public class CommitFinder extends RepositoryService {
 
-	/**
-	 * Commit filter for selecting commits to match
-	 */
-	protected RevFilter commitFilter;
+    /**
+     * Commit filter for selecting commits to match
+     */
+    protected RevFilter  commitFilter;
 
-	/**
-	 * Tree filter for selecting commits to match
-	 */
-	protected TreeFilter treeFilter;
+    /**
+     * Tree filter for selecting commits to match
+     */
+    protected TreeFilter treeFilter;
 
-	/**
-	 * Sort strategy for {@link RevWalk}
-	 */
-	protected RevSort sort;
+    /**
+     * Sort strategy for {@link RevWalk}
+     */
+    protected RevSort    sort;
 
-	/**
-	 * Create a commit finder for the given Git directories.
-	 *
-	 * @param gitDirs
-	 */
-	public CommitFinder(final File... gitDirs) {
-		super(gitDirs);
-	}
+    /**
+     * max num of commit
+     */
+    protected int        maxNum = -1;
 
-	/**
-	 * Create a commit finder for the given Git repositories.
-	 *
-	 * @param repositories
-	 */
-	public CommitFinder(final Repository... repositories) {
-		super(repositories);
-	}
+    /**
+     * count nums
+     */
+    protected int        nums   = 0;
 
-	/**
-	 * Create a commit finder for the given Git directory paths.
-	 *
-	 * @param gitDirs
-	 */
-	public CommitFinder(final String... gitDirs) {
-		super(gitDirs);
-	}
+    /**
+     * Create a commit finder for the given Git directories.
+     *
+     * @param gitDirs
+     */
+    public CommitFinder(final File... gitDirs) {
+        super(gitDirs);
+    }
 
-	/**
-	 * Create a commit finder for th given repository collection
-	 *
-	 * @param repositories
-	 */
-	public CommitFinder(final Collection<?> repositories) {
-		super(repositories);
-	}
+    /**
+     * Create a commit finder for the given Git repositories.
+     *
+     * @param repositories
+     */
+    public CommitFinder(final Repository... repositories) {
+        super(repositories);
+    }
 
-	/**
-	 * Set the {@link RevFilter} to use to filter commits during searches.
-	 *
-	 * @param filter
-	 * @return this service
-	 */
-	public CommitFinder setFilter(final RevFilter filter) {
-		commitFilter = filter;
-		return this;
-	}
+    /**
+     * Create a commit finder for the given Git directory paths.
+     *
+     * @param gitDirs
+     */
+    public CommitFinder(final String... gitDirs) {
+        super(gitDirs);
+    }
 
-	/**
-	 * Set the {@link TreeFilter} to use to limit commits visited.
-	 *
-	 * @param filter
-	 * @return this service
-	 */
-	public CommitFinder setFilter(final TreeFilter filter) {
-		treeFilter = filter;
-		return this;
-	}
+    /**
+     * Create a commit finder for th given repository collection
+     *
+     * @param repositories
+     */
+    public CommitFinder(final Collection<?> repositories) {
+        super(repositories);
+    }
 
-	/**
-	 * Create a newly configured {@link RevWalk} for the repository
-	 *
-	 * @param repository
-	 * @return new {@link RevWalk}
-	 */
-	protected RevWalk createWalk(final Repository repository) {
-		final RevWalk walk = new RevWalk(repository);
-		walk.setRetainBody(true);
-		walk.setRevFilter(commitFilter);
-		walk.setTreeFilter(treeFilter);
-		if (commitFilter instanceof CommitFilter)
-			((CommitFilter) commitFilter).setRepository(repository);
-		if (treeFilter instanceof BaseTreeFilter)
-			((BaseTreeFilter) treeFilter).setRepository(repository);
-		if (sort != null)
-			walk.sort(sort);
-		return walk;
-	}
+    /**
+     * Set the {@link RevFilter} to use to filter commits during searches.
+     *
+     * @param filter
+     * @return this service
+     */
+    public CommitFinder setFilter(final RevFilter filter) {
+        commitFilter = filter;
+        return this;
+    }
 
-	/**
-	 * Traverse the commits in the given {@link RevWalk}
-	 *
-	 * @param walk
-	 * @return this finder
-	 * @throws IOException
-	 */
-	protected CommitFinder walk(final RevWalk walk) throws IOException {
-		try {
-			while (walk.next() != null)
-				;
-		} catch (StopWalkException ignored) {
-			// Ignored
-		}
-		return this;
-	}
+    /**
+     * Set the {@link TreeFilter} to use to limit commits visited.
+     *
+     * @param filter
+     * @return this service
+     */
+    public CommitFinder setFilter(final TreeFilter filter) {
+        treeFilter = filter;
+        return this;
+    }
 
-	/**
-	 * Walk the commits between the start commit id and end commit id.
-	 *
-	 * @param repository
-	 * @param start
-	 *            must be non-null
-	 * @param end
-	 * @return this service
-	 */
-	protected CommitFinder walk(final Repository repository,
-			final ObjectId start, final ObjectId end) {
-		if (start == null)
-			throw new IllegalArgumentException(
-					Assert.formatNotNull("Starting commit id"));
+    public void setMaxNum(int maxNum) {
+        this.maxNum = maxNum;
+    }
 
-		final RevWalk walk = createWalk(repository);
-		try {
-			walk.markStart(walk.parseCommit(start));
-			if (end != null)
-				walk.markUninteresting(walk.parseCommit(end));
-			walk(walk);
-		} catch (IOException e) {
-			throw new GitException(e, repository);
-		} finally {
-			walk.release();
-		}
-		return this;
-	}
+    /**
+     * Create a newly configured {@link RevWalk} for the repository
+     *
+     * @param repository
+     * @return new {@link RevWalk}
+     */
+    protected RevWalk createWalk(final Repository repository) {
+        final RevWalk walk = new RevWalk(repository);
+        walk.setRetainBody(true);
+        walk.setRevFilter(commitFilter);
+        walk.setTreeFilter(treeFilter);
+        if (commitFilter instanceof CommitFilter)
+            ((CommitFilter) commitFilter).setRepository(repository);
+        if (treeFilter instanceof BaseTreeFilter)
+            ((BaseTreeFilter) treeFilter).setRepository(repository);
+        if (sort != null)
+            walk.sort(sort);
+        return walk;
+    }
 
-	/**
-	 * Search the commits starting from the given commit id.
-	 *
-	 * @param start
-	 * @return this service
-	 */
-	public CommitFinder findFrom(final ObjectId start) {
-		return findBetween(start, (ObjectId) null);
-	}
+    /**
+     * Traverse the commits in the given {@link RevWalk}
+     *
+     * @param walk
+     * @return this finder
+     * @throws IOException
+     */
+    protected CommitFinder walk(final RevWalk walk) throws IOException {
+        try {
+            while (walk.next() != null && ((maxNum == -1) ? true : nums < maxNum))
+                nums++;
+        } catch (StopWalkException ignored) {
+            // Ignored
+        }
+        return this;
+    }
 
-	/**
-	 * Search the commits starting from the given revision.
-	 *
-	 * @param start
-	 * @return this service
-	 */
-	public CommitFinder findFrom(final String start) {
-		return findBetween(start, (ObjectId) null);
-	}
+    /**
+     * Walk the commits between the start commit id and end commit id.
+     *
+     * @param repository
+     * @param start
+     *            must be non-null
+     * @param end
+     * @return this service
+     */
+    protected CommitFinder walk(final Repository repository, final ObjectId start,
+                                final ObjectId end) {
+        if (start == null)
+            throw new IllegalArgumentException(Assert.formatNotNull("Starting commit id"));
 
-	/**
-	 * Search the commits starting at the commit that HEAD current references.
-	 *
-	 * @return this service
-	 */
-	public CommitFinder find() {
-		return findFrom(HEAD);
-	}
+        final RevWalk walk = createWalk(repository);
+        try {
+            walk.markStart(walk.parseCommit(start));
+            if (end != null)
+                walk.markUninteresting(walk.parseCommit(end));
+            walk(walk);
+        } catch (IOException e) {
+            throw new GitException(e, repository);
+        } finally {
+            walk.release();
+        }
+        return this;
+    }
 
-	/**
-	 * Search the commits starting at the commit that each tag is referencing.
-	 * <p>
-	 * Repositories that have no tags will be ignored.
-	 *
-	 * @return this finder
-	 */
-	public CommitFinder findInTags() {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		Repository repo;
-		for (int i = 0; i < repoCount; i++) {
-			repo = repos[i];
-			final Collection<RevCommit> commits = CommitUtils.getTags(repo);
-			if (commits.isEmpty())
-				continue;
-			final RevWalk walk = createWalk(repo);
-			try {
-				walk.markStart(commits);
-				walk(walk);
-			} catch (IOException e) {
-				throw new GitException(e, repo);
-			} finally {
-				walk.release();
-			}
-		}
-		return this;
-	}
+    /**
+     * Search the commits starting from the given commit id.
+     *
+     * @param start
+     * @return this service
+     */
+    public CommitFinder findFrom(final ObjectId start) {
+        return findBetween(start, (ObjectId) null);
+    }
 
-	/**
-	 * Search the commits starting at the commit that each branch is
-	 * referencing.
-	 * <p>
-	 * Repositories that have no branches will be ignored.
-	 *
-	 * @return this finder
-	 */
-	public CommitFinder findInBranches() {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		Repository repo;
-		for (int i = 0; i < repoCount; i++) {
-			repo = repos[i];
-			final Collection<RevCommit> commits = CommitUtils.getBranches(repo);
-			if (commits.isEmpty())
-				continue;
-			final RevWalk walk = createWalk(repo);
-			try {
-				walk.markStart(commits);
-				walk(walk);
-			} catch (IOException e) {
-				throw new GitException(e, repo);
-			} finally {
-				walk.release();
-			}
-		}
-		return this;
-	}
+    /**
+     * Search the commits starting from the given revision.
+     *
+     * @param start
+     * @return this service
+     */
+    public CommitFinder findFrom(final String start) {
+        return findBetween(start, (ObjectId) null);
+    }
 
-	/**
-	 * Search the commits between the given start and end commits.
-	 *
-	 * @param start
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findBetween(final ObjectId start, final ObjectId end) {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		for (int i = 0; i < repoCount; i++)
-			walk(repos[i], start, end);
-		return this;
-	}
+    /**
+     * Search the commits starting at the commit that HEAD current references.
+     *
+     * @return this service
+     */
+    public CommitFinder find() {
+        return findFrom(HEAD);
+    }
 
-	/**
-	 * Search the commits between the given start revision and the given end
-	 * commit id.
-	 *
-	 * @param start
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findBetween(final String start, final ObjectId end) {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		Repository repo;
-		for (int i = 0; i < repoCount; i++) {
-			repo = repos[i];
-			walk(repo, CommitUtils.getCommit(repo, start), end);
-		}
-		return this;
-	}
+    /**
+     * Search the commits starting at the commit that each tag is referencing.
+     * <p>
+     * Repositories that have no tags will be ignored.
+     *
+     * @return this finder
+     */
+    public CommitFinder findInTags() {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        Repository repo;
+        for (int i = 0; i < repoCount; i++) {
+            repo = repos[i];
+            final Collection<RevCommit> commits = CommitUtils.getTags(repo);
+            if (commits.isEmpty())
+                continue;
+            final RevWalk walk = createWalk(repo);
+            try {
+                walk.markStart(commits);
+                walk(walk);
+            } catch (IOException e) {
+                throw new GitException(e, repo);
+            } finally {
+                walk.release();
+            }
+        }
+        return this;
+    }
 
-	/**
-	 * Search the commits between the given start commit id and the given end
-	 * revision.
-	 *
-	 * @param start
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findBetween(final ObjectId start, final String end) {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		Repository repo;
-		for (int i = 0; i < repoCount; i++) {
-			repo = repos[i];
-			walk(repo, start, CommitUtils.getCommit(repo, end));
-		}
-		return this;
-	}
+    /**
+     * Search the commits starting at the commit that each branch is
+     * referencing.
+     * <p>
+     * Repositories that have no branches will be ignored.
+     *
+     * @return this finder
+     */
+    public CommitFinder findInBranches() {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        Repository repo;
+        for (int i = 0; i < repoCount; i++) {
+            repo = repos[i];
+            final Collection<RevCommit> commits = CommitUtils.getBranches(repo);
+            if (commits.isEmpty())
+                continue;
+            final RevWalk walk = createWalk(repo);
+            try {
+                walk.markStart(commits);
+                walk(walk);
+            } catch (IOException e) {
+                throw new GitException(e, repo);
+            } finally {
+                walk.release();
+            }
+        }
+        return this;
+    }
 
-	/**
-	 * Search the commits between the given start revision and the given end
-	 * revision.
-	 *
-	 * @param start
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findBetween(final String start, final String end) {
-		final Repository[] repos = repositories;
-		final int repoCount = repositories.length;
-		Repository repo;
-		for (int i = 0; i < repoCount; i++) {
-			repo = repos[i];
-			walk(repo, CommitUtils.getCommit(repo, start),
-					CommitUtils.getCommit(repo, end));
-		}
-		return this;
-	}
+    /**
+     * Search the commits between the given start and end commits.
+     *
+     * @param start
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findBetween(final ObjectId start, final ObjectId end) {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        for (int i = 0; i < repoCount; i++)
+            walk(repos[i], start, end);
+        return this;
+    }
 
-	/**
-	 * Search the commits starting at HEAD and ending with the given revision
-	 *
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findUntil(final String end) {
-		return findBetween(HEAD, end);
-	}
+    /**
+     * Search the commits between the given start revision and the given end
+     * commit id.
+     *
+     * @param start
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findBetween(final String start, final ObjectId end) {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        Repository repo;
+        for (int i = 0; i < repoCount; i++) {
+            repo = repos[i];
+            walk(repo, CommitUtils.getCommit(repo, start), end);
+        }
+        return this;
+    }
 
-	/**
-	 * Search the commits starting at HEAD and ending with the given commit id
-	 *
-	 * @param end
-	 * @return this service
-	 */
-	public CommitFinder findUntil(final ObjectId end) {
-		return findBetween(HEAD, end);
-	}
+    /**
+     * Search the commits between the given start commit id and the given end
+     * revision.
+     *
+     * @param start
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findBetween(final ObjectId start, final String end) {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        Repository repo;
+        for (int i = 0; i < repoCount; i++) {
+            repo = repos[i];
+            walk(repo, start, CommitUtils.getCommit(repo, end));
+        }
+        return this;
+    }
+
+    /**
+     * Search the commits between the given start revision and the given end
+     * revision.
+     *
+     * @param start
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findBetween(final String start, final String end) {
+        final Repository[] repos = repositories;
+        final int repoCount = repositories.length;
+        Repository repo;
+        for (int i = 0; i < repoCount; i++) {
+            repo = repos[i];
+            walk(repo, CommitUtils.getCommit(repo, start), CommitUtils.getCommit(repo, end));
+        }
+        return this;
+    }
+
+    /**
+     * Search the commits starting at HEAD and ending with the given revision
+     *
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findUntil(final String end) {
+        return findBetween(HEAD, end);
+    }
+
+    /**
+     * Search the commits starting at HEAD and ending with the given commit id
+     *
+     * @param end
+     * @return this service
+     */
+    public CommitFinder findUntil(final ObjectId end) {
+        return findBetween(HEAD, end);
+    }
 }
